@@ -434,11 +434,11 @@ const struct vb2_mem_ops vb2_vmalloc_memops = {
 	.put		= vb2_vmalloc_put,
 	.get_userptr	= vb2_vmalloc_get_userptr,
 	.put_userptr	= vb2_vmalloc_put_userptr,
-#ifdef CONFIG_HAS_DMA
+/* #ifdef CONFIG_HAS_DMA
 	.get_dmabuf	= vb2_vmalloc_get_dmabuf,
 #endif
 	.map_dmabuf	= vb2_vmalloc_map_dmabuf,
-	.unmap_dmabuf	= vb2_vmalloc_unmap_dmabuf,
+	.unmap_dmabuf	= vb2_vmalloc_unmap_dmabuf, */
 	.attach_dmabuf	= vb2_vmalloc_attach_dmabuf,
 	.detach_dmabuf	= vb2_vmalloc_detach_dmabuf,
 	.vaddr		= vb2_vmalloc_vaddr,
@@ -450,3 +450,4 @@ EXPORT_SYMBOL_GPL(vb2_vmalloc_memops);
 MODULE_DESCRIPTION("vmalloc memory handling routines for videobuf2");
 MODULE_AUTHOR("Pawel Osciak <pawel@osciak.com>");
 MODULE_LICENSE("GPL");
+
