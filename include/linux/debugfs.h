@@ -69,6 +69,9 @@ struct dentry *debugfs_create_file(const char *name, umode_t mode,
 struct dentry *debugfs_create_file_unsafe(const char *name, umode_t mode,
 				   struct dentry *parent, void *data,
 				   const struct file_operations *fops);
+{
+	return ERR_PTR(-ENODEV);
+}
 
 struct dentry *debugfs_create_file_size(const char *name, umode_t mode,
 					struct dentry *parent, void *data,
