@@ -1,12 +1,21 @@
-[submodule "drivers/net/wireless/realtek/rtl8812au"]
-	path = drivers/net/wireless/realtek/rtl8812au
-	url = https://github.com/aircrack-ng/rtl8812au.git
 [submodule "drivers/net/wireless/realtek/rtl8188eus"]
 	path = drivers/net/wireless/realtek/rtl8188eus
-	url = https://github.com/aircrack-ng/rtl8188eus.git
+	url = https://github.com/akabul0us/rtl8188eus
 [submodule "kali-nethunter-kernel-builder"]
 	path = kali-nethunter-kernel-builder
 	url = https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-kernel-builder.git
 [submodule "android_kernel_nethunter"]
 	path = android_kernel_nethunter
 	url = https://github.com/cyberknight777/android_kernel_nethunter.git
+[submodule "drivers/net/wireless/realtek/rtl88x2bu"]
+	path = drivers/net/wireless/realtek/rtl88x2bu
+	url = https://github.com/akabul0us/rtl88x2bu
+[submodule "drivers/net/wireless/mediatek/mt76"]
+	path = drivers/net/wireless/mediatek/mt76
+	url = https://github.com/akabul0us/mt76
+[submodule "docker"]
+	path = docker
+	url = https://github.com/cyberknight777/android_kernel_docker
+[submodule "drivers/net/wireless/realtek/rtl8812au"]
+	path = drivers/net/wireless/realtek/rtl8812au
+	url = https://github.com/akabul0us/rtl8812au
