@@ -48,7 +48,6 @@ struct rcu_node;
 struct reclaim_state;
 struct robust_list_head;
 struct sched_attr;
-struct sched_param;
 struct seq_file;
 struct sighand_struct;
 struct signal_struct;
@@ -289,6 +288,10 @@ struct vtime {
 	u64			utime;
 	u64			stime;
 	u64			gtime;
+};
+
+struct sched_param {
+	int sched_priority;
 };
 
 struct sched_info {
@@ -766,6 +769,14 @@ struct task_struct {
 	struct list_head		rcu_tasks_holdout_list;
 #endif /* #ifdef CONFIG_TASKS_RCU */
 
+#ifdef CONFIG_TASKS_TRACE_RCU
+	int				trc_reader_nesting;
+	int				trc_ipi_to_cpu;
+	bool				trc_reader_need_end;
+	bool				trc_reader_checked;
+	struct list_head		trc_holdout_list;
+#endif /* #ifdef CONFIG_TASKS_TRACE_RCU */
+
 	struct sched_info		sched_info;
 
 	struct list_head		tasks;
@@ -820,12 +831,18 @@ struct task_struct {
 	unsigned			memcg_kmem_skip_account:1;
 #endif
 #endif
+#ifdef CONFIG_LRU_GEN
+	/* whether the LRU algorithm may apply to this access */
+	unsigned			in_lru_fault:1;
+#endif
 #ifdef CONFIG_COMPAT_BRK
 	unsigned			brk_randomized:1;
 #endif
 #ifdef CONFIG_CGROUPS
 	/* disallow userland-initiated cgroup migration */
 	unsigned			no_cgroup_migration:1;
+	/* task is frozen/stopped (used by the cgroup freezer) */
+	unsigned			frozen:1;
 #endif
 
 	unsigned long			atomic_flags; /* Flags requiring atomic access. */
@@ -868,7 +885,8 @@ struct task_struct {
 	struct list_head		ptrace_entry;
 
 	/* PID/PID hash table linkage. */
-	struct pid_link			pids[PIDTYPE_MAX];
+	struct pid			*thread_pid;
+	struct hlist_node		pid_links[PIDTYPE_MAX];
 	struct list_head		thread_group;
 	struct list_head		thread_node;
 
@@ -1318,27 +1336,7 @@ struct task_struct {
 
 static inline struct pid *task_pid(struct task_struct *task)
 {
-	return task->pids[PIDTYPE_PID].pid;
-}
-
-static inline struct pid *task_tgid(struct task_struct *task)
-{
-	return task->group_leader->pids[PIDTYPE_PID].pid;
-}
-
-/*
- * Without tasklist or RCU lock it is not safe to dereference
- * the result of task_pgrp/task_session even if task == current,
- * we can race with another thread doing sys_setsid/sys_setpgid.
- */
-static inline struct pid *task_pgrp(struct task_struct *task)
-{
-	return task->group_leader->pids[PIDTYPE_PGID].pid;
-}
-
-static inline struct pid *task_session(struct task_struct *task)
-{
-	return task->group_leader->pids[PIDTYPE_SID].pid;
+	return task->thread_pid;
 }
 
 /*
@@ -1387,7 +1385,7 @@ static inline pid_t task_tgid_nr(struct task_struct *tsk)
  */
 static inline int pid_alive(const struct task_struct *p)
 {
-	return p->pids[PIDTYPE_PID].pid != NULL;
+	return p->thread_pid != NULL;
 }
 
 static inline pid_t task_pgrp_nr_ns(struct task_struct *tsk, struct pid_namespace *ns)
@@ -1413,12 +1411,12 @@ static inline pid_t task_session_vnr(struct task_struct *tsk)
 
 static inline pid_t task_tgid_nr_ns(struct task_struct *tsk, struct pid_namespace *ns)
 {
-	return __task_pid_nr_ns(tsk, __PIDTYPE_TGID, ns);
+	return __task_pid_nr_ns(tsk, PIDTYPE_TGID, ns);
 }
 
 static inline pid_t task_tgid_vnr(struct task_struct *tsk)
 {
-	return __task_pid_nr_ns(tsk, __PIDTYPE_TGID, NULL);
+	return __task_pid_nr_ns(tsk, PIDTYPE_TGID, NULL);
 }
 
 static inline pid_t task_ppid_nr_ns(const struct task_struct *tsk, struct pid_namespace *ns)
@@ -1515,6 +1513,7 @@ extern struct pid *cad_pid;
 #define PF_RANDOMIZE		0x00400000	/* Randomize virtual address space */
 #define PF_SWAPWRITE		0x00800000	/* Allowed to write to swap */
 #define PF_MEMSTALL		0x01000000	/* Stalled due to lack of memory */
+#define PF_UMH			0x02000000	/* I'm an Usermodehelper process */
 #define PF_NO_SETAFFINITY	0x04000000	/* Userland is not allowed to meddle with cpus_allowed */
 #define PF_MCE_EARLY		0x08000000      /* Early kill for mce process policy */
 #define PF_MUTEX_TESTER		0x20000000	/* Thread belongs to the rt mutex tester */
@@ -1681,11 +1680,20 @@ extern void ia64_set_curr_task(int cpu, struct task_struct *p);
 void yield(void);
 
 union thread_union {
+#ifndef CONFIG_ARCH_TASK_STRUCT_ON_STACK
+	struct task_struct task;
+#endif
 #ifndef CONFIG_THREAD_INFO_IN_TASK
 	struct thread_info thread_info;
 #endif
 	unsigned long stack[THREAD_SIZE/sizeof(long)];
 };
+
+#ifndef CONFIG_THREAD_INFO_IN_TASK
+extern struct thread_info init_thread_info;
+#endif
+
+extern unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)];
 
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 static inline struct thread_info *task_thread_info(struct task_struct *task)

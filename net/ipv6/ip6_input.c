@@ -214,7 +214,8 @@ int ipv6_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt
 	rcu_read_unlock();
 
 	/* Must drop socket now because of tproxy. */
-	skb_orphan(skb);
+	if (!skb_sk_is_prefetched(skb))
+		skb_orphan(skb);
 
 	return NF_HOOK(NFPROTO_IPV6, NF_INET_PRE_ROUTING,
 		       net, NULL, skb, dev, NULL,
@@ -350,7 +351,7 @@ int ip6_mc_input(struct sk_buff *skb)
 	bool deliver;
 
 	__IP6_UPD_PO_STATS(dev_net(skb_dst(skb)->dev),
-			 ip6_dst_idev(skb_dst(skb)), IPSTATS_MIB_INMCAST,
+			 __in6_dev_get_safely(skb->dev), IPSTATS_MIB_INMCAST,
 			 skb->len);
 
 	hdr = ipv6_hdr(skb);
