@@ -81,7 +81,7 @@ struct sugov_cpu {
 static DEFINE_PER_CPU(struct sugov_cpu, sugov_cpu);
 
 /******************* exynos specific function *******************/
-#define DEFAULT_EXPIRED_TIME	70
+#define DEFAULT_EXPIRED_TIME	20
 struct sugov_exynos {
 	/* for slack timer */
 	unsigned long min;
@@ -999,7 +999,7 @@ static void sugov_stop_slack(int cpu)
 
 static s64 get_next_event_time_ms(unsigned int cpu)
 {
-	return ktime_to_us(ktime_sub(*(get_next_event_cpu(cpu)), ktime_get()));
+	return ktime_to_ms(ktime_sub(*(get_next_event_cpu(cpu)), ktime_get()));
 }
 
 static int sugov_need_slack_timer(unsigned int cpu)

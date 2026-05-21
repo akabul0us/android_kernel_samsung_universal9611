@@ -71,10 +71,12 @@ static ssize_t show_global_boost(struct kobject *kobj,
 	int ret = 0;
 
 	/* show all requests as well as user level */
-	plist_for_each_entry(req, &gb_list, node)
-		ret += snprintf(buf + ret, 30, "%s : %d\n",
+	plist_for_each_entry(req, &gb_list, node) {
+		if (ret >= PAGE_SIZE)
+			break;
+		ret += snprintf(buf + ret, PAGE_SIZE - ret, "%s : %d\n",
 				req->name, req->node.prio);
-
+	}
 	return ret;
 }
 
@@ -84,7 +86,7 @@ static ssize_t store_global_boost(struct kobject *kobj,
 {
 	unsigned int input;
 
-	if (!sscanf(buf, "%d", &input))
+	if (sscanf(buf, "%d", &input) != 1)
 		return -EINVAL;
 
 	gb_qos_update_request(&gb_req_user, input);
@@ -101,7 +103,7 @@ static int __init init_gb_sysfs(void)
 
 	ret = sysfs_create_file(ems_kobj, &global_boost_attr.attr);
 	if (ret)
-		pr_err("%s: faile to create sysfs file\n", __func__);
+		pr_err("%s: failed to create sysfs file\n", __func__);
 
 	return 0;
 }

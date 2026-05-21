@@ -60,8 +60,8 @@
  *
  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_latency			= 6000000ULL;
-unsigned int normalized_sysctl_sched_latency		= 6000000ULL;
+unsigned int sysctl_sched_latency			= 4000000ULL;
+unsigned int normalized_sysctl_sched_latency		= 4000000ULL;
 
 /*
  * Enable/disable honoring sync flag in energy-aware wakeups.
@@ -113,10 +113,10 @@ unsigned int sysctl_sched_child_runs_first __read_mostly;
  *
  * (default: 1 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_wakeup_granularity		= 1000000UL;
-unsigned int normalized_sysctl_sched_wakeup_granularity	= 1000000UL;
+unsigned int sysctl_sched_wakeup_granularity		= 500000UL;
+unsigned int normalized_sysctl_sched_wakeup_granularity	= 500000UL;
 
-const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
+const_debug unsigned int sysctl_sched_migration_cost	= 250000UL;
 
 #ifdef CONFIG_SCHED_WALT
 unsigned int sysctl_sched_use_walt_cpu_util = 1;
@@ -549,26 +549,38 @@ static void update_min_vruntime(struct cfs_rq *cfs_rq)
 	struct rb_node *leftmost = rb_first_cached(&cfs_rq->tasks_timeline);
 
 	u64 vruntime = cfs_rq->min_vruntime;
-#ifdef CONFIG_FAST_TRACK
-	if (cfs_rq->ftt_rqcnt) {
-		return;
-	}
-#endif
+
 	if (curr) {
-		if (curr->on_rq)
-			vruntime = curr->vruntime;
-		else
+		if (curr->on_rq) {
+#ifdef CONFIG_FAST_TRACK
+			/*
+			 * FTT tasks hold an artificially lowered vruntime.
+			 * Treat them as absent so they never stall min_vruntime.
+			 */
+			if (is_ftt(curr))
+				curr = NULL;
+			else
+#endif
+				vruntime = curr->vruntime;
+		} else {
 			curr = NULL;
+		}
 	}
 
 	if (leftmost) { /* non-empty tree */
 		struct sched_entity *se;
 		se = rb_entry(leftmost, struct sched_entity, run_node);
 
-		if (!curr)
-			vruntime = se->vruntime;
-		else
-			vruntime = min_vruntime(vruntime, se->vruntime);
+#ifdef CONFIG_FAST_TRACK
+		if (!is_ftt(se)) {
+#endif
+			if (!curr)
+				vruntime = se->vruntime;
+			else
+				vruntime = min_vruntime(vruntime, se->vruntime);
+#ifdef CONFIG_FAST_TRACK
+		}
+#endif
 	}
 
 	/* ensure we never gain time by being placed backwards. */
@@ -944,6 +956,7 @@ static void update_curr(struct cfs_rq *cfs_rq)
 
 		if (is_ftt(curr)) {
 			curr->ftt_vrt_delta += calc_delta_fair(delta_exec, curr);
+			update_min_vruntime(cfs_rq);
 		} else {
 			curr->vruntime += calc_delta_fair(delta_exec, curr);
 			update_min_vruntime(cfs_rq);
@@ -8267,6 +8280,17 @@ static void migrate_task_rq_fair(struct task_struct *p)
 static void task_dead_fair(struct task_struct *p)
 {
 	remove_entity_load_avg(&p->se);
+	/*
+	 * Remove the task from its task band when it exits.  Without this
+	 * call, dead task structs are left on band->members indefinitely:
+	 * __update_band() will keep dereferencing their se.avg fields
+	 * (use-after-free), member_count never returns to zero so the band
+	 * slot is never reclaimed, and all 20 band slots gradually fill up
+	 * with dead entries, breaking band-based CPU placement for all new
+	 * thread groups.  The resulting mis-placement compounds over hours of
+	 * interactive use, which is the primary source of the progressive lag.
+	 */
+	sync_band(p, false);
 }
 #endif /* CONFIG_SMP */
 
@@ -8482,7 +8506,7 @@ again:
 		if (cfs_rq->ftt_sched_count >= FTT_MAX_SCHED)
 			cfs_rq->ftt_sched_count--;
 		else
-			cfs_rq->ftt_sched_count = cfs_rq->ftt_sched_count - 2 > 0 ?
+			cfs_rq->ftt_sched_count = cfs_rq->ftt_sched_count > 2 ?
 				cfs_rq->ftt_sched_count - 2 : 0;
 	}
 #endif
