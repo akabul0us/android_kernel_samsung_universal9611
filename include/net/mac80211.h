@@ -1124,6 +1124,7 @@ enum mac80211_rx_flags {
 	RX_FLAG_MIC_STRIPPED		= BIT(21),
 	RX_FLAG_ALLOW_SAME_PN		= BIT(22),
 	RX_FLAG_ICV_STRIPPED		= BIT(23),
+	RX_FLAG_NO_PSDU                 = BIT(28),
 };
 
 /**
@@ -1154,6 +1155,7 @@ enum mac80211_rx_encoding {
 	RX_ENC_LEGACY = 0,
 	RX_ENC_HT,
 	RX_ENC_VHT,
+	RX_ENC_HE,
 };
 
 /**
@@ -1202,6 +1204,7 @@ struct ieee80211_rx_status {
 	u16 freq;
 	u8 enc_flags;
 	u8 encoding:2, bw:3;
+	u8 vht_flag;
 	u8 rate_idx;
 	u8 nss;
 	u8 rx_flags;
