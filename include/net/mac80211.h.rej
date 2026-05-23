@@ -1,0 +1,10 @@
+--- include/net/mac80211.h
++++ include/net/mac80211.h
+@@ -1124,6 +1124,7 @@ enum mac80211_rx_flags {
+ 	RX_FLAG_MIC_STRIPPED		= BIT(21),
+ 	RX_FLAG_ALLOW_SAME_PN		= BIT(22),
+ 	RX_FLAG_ICV_STRIPPED		= BIT(23),
++	RX_FLAG_NO_PSDU                 = BIT(28),
+ };
+ 
+ /**

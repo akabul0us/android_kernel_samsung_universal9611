@@ -16,6 +16,7 @@
 *.c.[012]*.*
 *.dtb
 *.dtb.S
+*.dts
 *.dwo
 *.elf
 *.gcno
@@ -41,7 +42,6 @@
 *.xz
 Module.symvers
 modules.builtin
-
 #
 # Top-level generic files
 #
@@ -130,3 +130,7 @@ kernel/configs/android-*.cfg
 # Samsung
 scripts/crypto/__pycache__/
 scripts/fmp/__pycache__/
+
+#AnyKernel3
+AnyKernel3/*.zip
+AnyKernel3/Image

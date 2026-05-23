@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
 
+EXTRA_CFLAGS += -Wno-implicit-int
+ccflags-y += -O2 -std=gnu11 -Wno-declaration-after-statement
+
 obj-$(CONFIG_RTW88_CORE)	+= rtw88_core.o
 rtw88_core-y += main.o \
 	   mac80211.o \
@@ -111,4 +114,3 @@ rtw88_sdio-objs			:= sdio.o
 
 obj-$(CONFIG_RTW88_USB)		+= rtw88_usb.o
 rtw88_usb-objs			:= usb.o
-
